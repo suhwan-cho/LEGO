@@ -1,1 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LEGO: A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation</title>
+<meta name="description" content="LEGO generates the first-person video of a person in a third-person recording by conditioning a video diffusion model on the render of a learned view synthesizer, with no depth estimation or point cloud.">
+<meta property="og:title" content="LEGO: A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation">
+<meta property="og:description" content="Egocentric video from a single exocentric video, without depth, point clouds, or reprojection.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="static/img/lego_head.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --panel:#f2f5f4; --ink:#15191b; --muted:#5a6563; --rule:#dce2e0;
+  --accent:#267366; --accent-ink:#ffffff; --lego:#f5c518; --lego-tint:rgba(245,197,24,.18);
+  --media:#0c0e0f; --focus:#267366;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Sans 3","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --wide:1180px; --text:720px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1312; --panel:#161c1b; --ink:#e6ecea; --muted:#97a3a0; --rule:#28312f;
+    --accent:#6cc2af; --accent-ink:#0f1312; --lego-tint:rgba(245,197,24,.14); --media:#000; --focus:#6cc2af;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1312; --panel:#161c1b; --ink:#e6ecea; --muted:#97a3a0; --rule:#28312f;
+  --accent:#6cc2af; --accent-ink:#0f1312; --lego-tint:rgba(245,197,24,.14); --media:#000; --focus:#6cc2af;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--body);
+  padding-inline:max(16px, env(safe-area-inset-left, 0px));padding-block:0 48px}
+img,video{display:block;max-width:100%;height:auto}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.wrap{max-width:var(--wide);margin-inline:auto}
+.prose{max-width:var(--text);margin-inline:auto}
 
+/* ---------- header ---------- */
+header{padding-block:56px 20px;text-align:center}
+.mark{width:52px;height:60px;margin:0 auto 14px}
+h1{font-family:var(--display);font-stretch:112%;font-weight:760;letter-spacing:-.01em;
+  font-size:clamp(28px,4.4vw,46px);line-height:1.12;margin:0 auto;max-width:900px;text-wrap:balance}
+h1 .name{display:block;font-size:1.5em;font-weight:800;letter-spacing:.02em;margin-bottom:6px}
+.authors{margin:22px auto 0;font-size:18px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 22px}
+.affil{margin:6px 0 0;color:var(--muted);font-size:16px}
+.note{margin:2px 0 0;color:var(--muted);font-size:14px}
+.links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:22px 0 0;padding:0;list-style:none}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:999px;background:var(--ink);color:var(--bg);
+  font:600 15px/1 var(--body);text-decoration:none;border:1px solid var(--ink)}
+.btn svg{width:17px;height:17px;flex:none}
+.btn[aria-disabled="true"]{background:transparent;color:var(--muted);border-color:var(--rule);cursor:default}
+.btn .soon{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:999px;background:var(--panel);color:var(--muted)}
+
+/* ---------- hero ---------- */
+.hero{margin-top:34px}
+.tldr{max-width:820px;margin:0 auto 22px;text-align:center;font-size:19px;text-wrap:balance}
+.tldr b{font-family:var(--display);font-stretch:112%;font-weight:760;letter-spacing:.02em;margin-right:6px}
+.canvas{position:relative;background:var(--media);border-radius:10px;overflow:hidden;aspect-ratio:1232/448;max-width:100%}
+.canvas video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.canvas video:not(.on){visibility:hidden}
+.canvas-labels{display:grid;grid-template-columns:784fr 448fr;margin-top:8px;font-size:14px;color:var(--muted)}
+.canvas-labels span:last-child{padding-left:10px;border-left:3px solid var(--lego)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+.chip{font:600 14px/1 var(--body);padding:8px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cap{color:var(--muted);font-size:15px;margin:12px auto 0;max-width:var(--text);text-align:center;text-wrap:balance}
+
+/* ---------- sections ---------- */
+section{margin-top:72px}
+h2{font-family:var(--display);font-stretch:112%;font-weight:720;font-size:28px;line-height:1.2;margin:0 0 18px;text-wrap:balance}
+h3{font-family:var(--display);font-stretch:106%;font-weight:680;font-size:19px;margin:34px 0 10px}
+.lede{margin:0 0 14px}
+p{margin:0 0 14px}
+.eyebrow{font:700 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+figure{margin:22px 0 0}
+figure a.zoom{display:block;background:#fff;border-radius:10px;border:1px solid var(--rule);padding:10px}
+figcaption{color:var(--muted);font-size:15px;margin-top:10px}
+.steps{list-style:none;padding:0;margin:26px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.steps li{background:var(--panel);border-radius:10px;padding:18px 18px 16px}
+.steps h3{font-family:var(--display);font-stretch:106%;font-size:17px;margin:0 0 6px}
+.steps p{font-size:16px;margin:0}
+.steps .tag{font:500 12px/1 var(--mono);color:var(--muted);display:block;margin-bottom:8px}
+
+/* ---------- video comparison grids ---------- */
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden}
+.seg button{font:600 14px/1 var(--body);padding:8px 14px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"],.seg button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.seg-label{font-size:14px;color:var(--muted);margin-right:8px}
+.grid-head,.vrow{display:grid;gap:8px;align-items:end}
+.c4{grid-template-columns:1.75fr 1fr 1fr 1fr}
+.c3{grid-template-columns:1.75fr 1fr 1fr}
+.c2{grid-template-columns:1.75fr 1fr}
+.grid-head{font:600 14px/1.25 var(--body);color:var(--muted);margin-bottom:6px}
+.grid-head span{padding-bottom:6px;border-bottom:3px solid transparent}
+.grid-head .ours{color:var(--ink);border-bottom-color:var(--lego)}
+.rowcap{font-size:14px;color:var(--muted);margin:16px 0 6px}
+.rowcap:first-of-type{margin-top:0}
+.cell{margin:0}
+.cell video{width:100%;height:auto;background:var(--media);border-radius:6px}
+.cell figcaption{display:none;font-size:13px;margin-top:4px}
+.panel[hidden]{display:none}
+.hint{font-size:14px;color:var(--muted);margin-top:12px}
+.intro{margin:0 0 18px}
+
+/* ---------- tables ---------- */
+.tbl-wrap{overflow-x:auto;margin-top:12px;border:1px solid var(--rule);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:center;white-space:nowrap}
+th{font-weight:600;color:var(--muted);border-bottom:1px solid var(--rule)}
+thead tr:first-child th{color:var(--ink)}
+td:first-child,th:first-child{text-align:left}
+tbody tr+tr td{border-top:1px solid var(--rule)}
+tr.group td{background:var(--panel);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left}
+tr.ours td{background:var(--lego-tint)}
+td b{font-weight:700}
+.tnote{font-size:14px;color:var(--muted);margin-top:8px}
+
+/* ---------- bibtex ---------- */
+.bib{position:relative;background:var(--panel);border-radius:10px;margin-top:6px}
+.bib pre{margin:0;padding:18px 20px;overflow-x:auto;font:400 14px/1.6 var(--mono);color:var(--ink)}
+.copy{position:absolute;top:10px;right:10px;font:600 13px/1 var(--body);padding:7px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+
+footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:14px;text-align:center}
+
+/* ---------- responsive ---------- */
+@media (max-width:860px){ .steps{grid-template-columns:1fr} }
+@media (max-width:640px){
+  body{font-size:16px}
+  header{padding-block:36px 10px}
+  .grid-head{display:none}
+  .c4{grid-template-columns:repeat(3,1fr)}
+  .c3{grid-template-columns:repeat(2,1fr)}
+  .c2{grid-template-columns:1fr}
+  .vrow .exo{grid-column:1/-1}
+  .cell figcaption{display:block}
+  .canvas-labels{font-size:12px}
+}
+@media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <img class="mark" src="static/img/lego_head.svg" alt="" width="52" height="60">
+  <h1><span class="name">LEGO</span>A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation</h1>
+  <div class="authors">
+    <span>Suhwan Cho<sup>*</sup></span>
+    <span>Yonwoo Choi<sup>*</sup></span>
+    <span>Soongjin Kim<sup>*</sup></span>
+    <span>Jicheol Park</span>
+    <span>Taegyu Lim</span>
+  </div>
+  <p class="affil">GenGenAI</p>
+  <p class="note"><sup>*</sup>Equal contribution</p>
+  <ul class="links">
+    <li><a class="btn" aria-disabled="true" role="link" tabindex="-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+      Paper <span class="soon">Soon</span></a></li>
+    <li><a class="btn" href="https://github.com/suhwan-cho/LEGO" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
+      Code <span class="soon">Soon</span></a></li>
+    <li><a class="btn" aria-disabled="true" role="link" tabindex="-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7.3 12 12l8.7-4.7M12 22V12"/></svg>
+      Model <span class="soon">Soon</span></a></li>
+  </ul>
+</header>
+
+<div class="hero">
+  <p class="tldr"><b>TL;DR</b>Given a single third-person video, LEGO generates what a person in it sees, without estimating depth or building a point cloud.</p>
+  <div class="canvas" id="hero">
+    <video class="on" data-scene="classroom" src="static/video/hero_classroom.mp4" muted loop playsinline autoplay preload="auto" aria-label="LEGO classroom scene: input video and generated egocentric view"></video>
+    <video data-scene="bowling" src="static/video/hero_bowling.mp4" muted loop playsinline preload="none" aria-label="LEGO bowling alley scene: input video and generated egocentric view"></video>
+  </div>
+  <div class="canvas-labels" aria-hidden="true"><span>Exocentric input</span><span>Generated egocentric view (LEGO)</span></div>
+  <div class="chips" role="group" aria-label="Choose a scene">
+    <button class="chip" type="button" data-scene="classroom" aria-pressed="true">Classroom</button>
+    <button class="chip" type="button" data-scene="bowling" aria-pressed="false">Bowling alley</button>
+  </div>
+  <p class="cap">Egocentric videos generated by LEGO from stop-motion LEGO footage, far from the training data. The right side is the view from the head of one minifigure along a user-specified camera trajectory.</p>
+</div>
+
+<section id="abstract" class="prose">
+  <h2>Abstract</h2>
+  <p>Generating an egocentric video from a single exocentric recording is a challenging case of novel view synthesis, as the two cameras share little overlap and much of the target view is unobserved. Current state-of-the-art methods reconstruct the scene explicitly by estimating depth, lifting the video into a point cloud, and re-rendering it from the egocentric camera to condition a video diffusion model. This deterministic mapping assigns each pixel to a single reprojected location, which preserves texture but translates depth errors into misplaced content. We ask what a video diffusion model should receive as its condition and propose a lifting-free answer: a learned view synthesizer, an LVSM-style transformer fine-tuned to render the egocentric view directly without depth, point clouds, or reprojection, resolving cross-view correspondence internally. In contrast, its probabilistic mapping averages each region over candidate source locations according to a learned correspondence distribution, preserving structure while fine texture is averaged away. We argue that this trade-off suits a diffusion generator, whose denoising training excels at restoring detail, so an effective condition should prioritize structural alignment over sharpness. This distribution's concentration also yields a per-region confidence, used both to mask low-confidence regions and to guide the generator toward high-confidence areas during early layout-forming denoising steps. Our approach consistently outperforms the state-of-the-art explicit pipeline and generalizes to other datasets without retraining. The synthesizer thus supplies view structure, and the diffusion model its detail.</p>
+</section>
+
+<section id="idea">
+  <div class="prose">
+    <p class="eyebrow">Motivation</p>
+    <h2>Aligned before sharp</h2>
+    <p>Reconstruction pipelines estimate depth, lift the exocentric video into a point cloud, and re-render it from the egocentric camera. Each pixel lands at one reprojected location, so the render stays sharp, but a depth error moves content to the wrong place, and much of the egocentric frame is left uncovered.</p>
+    <p>LEGO renders the egocentric view with a learned view synthesizer instead. It averages over the candidate source locations, so its errors are blur rather than misplaced content. Blur is the corruption that denoising training teaches a diffusion model to undo, while misplaced content has to be overridden. The render below is soft, but it puts the scene where it belongs.</p>
+  </div>
+  <figure>
+    <a class="zoom" href="static/img/condition.png" target="_blank" rel="noopener"><img src="static/img/condition.png" alt="Condition generation in EgoX and LEGO: depth estimation, lifting and re-rendering versus direct rendering with a frozen synthesizer" loading="lazy" width="2400" height="647"></a>
+    <figcaption>Condition generation. EgoX estimates depth, lifts the exocentric video into a point cloud, and re-renders it along the egocentric trajectory. LEGO renders the egocentric view directly with a frozen synthesizer.</figcaption>
+  </figure>
+
+</section>
+
+<section id="method">
+  <div class="prose">
+    <p class="eyebrow">Method</p>
+    <h2>How LEGO works</h2>
+    <p>LEGO keeps the video diffusion backbone and the canvas of EgoX, where the exocentric and egocentric views are placed side by side and the egocentric half of the conditioning latent carries the condition. It changes two things: what fills that condition, and how the early denoising steps are guided.</p>
+  </div>
+  <figure>
+    <a class="zoom" href="static/img/pipeline.png" target="_blank" rel="noopener"><img src="static/img/pipeline.png" alt="LEGO pipeline: a frozen view synthesizer renders the egocentric view and a confidence map; the gated render conditions the diffusion model, and ARC guides early denoising" loading="lazy" width="2400" height="976"></a>
+    <figcaption>Overview. The frozen synthesizer renders the egocentric view once per latent frame and exposes a confidence map. The render, gated to gray where confidence is low, fills the egocentric half of the conditioning latent, and the confidence also drives ARC during the early denoising steps.</figcaption>
+  </figure>
+  <ol class="steps">
+    <li><span class="tag">render</span><h3>Learned view synthesizer</h3><p>An LVSM-style transformer maps the exocentric frame and the ray maps of both cameras to the egocentric fisheye frame. It is fine-tuned for 10k steps, about 3.5 hours on four H200 GPUs, and then frozen.</p></li>
+    <li><span class="tag">gate</span><h3>Confidence gating</h3><p>The synthesizer's attention forms a distribution over exocentric source locations. Its top-16 mass is a per-region confidence, and regions below the threshold are set to neutral gray, so the generator completes them from its own prior.</p></li>
+    <li><span class="tag">guide</span><h3>Adaptive Rendering Consistency</h3><p>During the early steps, when the layout is decided, ARC moves the generator's clean estimate toward the render in proportion to the squared confidence. It needs no training and replaces a depth-derived attention bias that prior work trains into the generator.</p></li>
+  </ol>
+</section>
+
+<section id="results">
+  <div class="toolbar">
+    <div><p class="eyebrow">Results</p><h2 style="margin:0">Comparison with EgoX</h2></div>
+    <div><span class="seg-label">Playback</span><span class="seg" role="group" aria-label="Playback speed"><button type="button" data-rate="1" aria-pressed="true">1×</button><button type="button" data-rate="0.5" aria-pressed="false">0.5×</button></span></div>
+  </div>
+  <p class="intro">Both methods receive the same camera poses, text prompt, and random seed. EgoX is the authors' released checkpoint. EgoHumans and Nymeria are never used for training: LEGO runs with the weights trained on Ego-Exo4D.</p>
+  <div class="toolbar" style="margin-bottom:12px">
+    <span class="seg" role="tablist" aria-label="Dataset">
+      <button type="button" role="tab" id="tab-ee" aria-controls="panel-ee" aria-selected="true">Ego-Exo4D</button>
+      <button type="button" role="tab" id="tab-eh" aria-controls="panel-eh" aria-selected="false">EgoHumans</button>
+      <button type="button" role="tab" id="tab-ny" aria-controls="panel-ny" aria-selected="false">Nymeria</button>
+    </span>
+  </div>
+  <div class="grid-head c4" aria-hidden="true"><span>Exocentric input</span><span>EgoX</span><span class="ours">LEGO</span><span>Ground truth</span></div>
+
+  <div class="panel" id="panel-ee" role="tabpanel" aria-labelledby="tab-ee">
+    <p class="rowcap">Unseen scene, cooking</p>
+    <div class="vrow c4" data-sync>
+      <figure class="cell exo"><video src="static/video/ee_cooking_exo.mp4" muted loop playsinline preload="none" aria-label="Exocentric input"></video><figcaption>Exocentric input</figcaption></figure>
+      <figure class="cell"><video src="static/video/ee_cooking_egox.mp4" muted loop playsinline preload="none" aria-label="EgoX"></video><figcaption>EgoX</figcaption></figure>
+      <figure class="cell"><video src="static/video/ee_cooking_lego.mp4" muted loop playsinline preload="none" aria-label="LEGO"></video><figcaption>LEGO</figcaption></figure>
+      <figure class="cell"><video src="static/video/ee_cooking_gt.mp4" muted loop playsinline preload="none" aria-label="Ground truth"></video><figcaption>Ground truth</figcaption></figure>
+    </div>
+    <p class="rowcap">Unseen scene, basketball</p>
+    <div class="vrow c4" data-sync>
+      <figure class="cell exo"><video src="static/video/ee_basketball_exo.mp4" muted loop playsinline preload="none" aria-label="Exocentric input"></video><figcaption>Exocentric input</figcaption></figure>
+      <figure class="cell"><video src="static/video/ee_basketball_egox.mp4" muted loop playsinline preload="none" aria-label="EgoX"></video><figcaption>EgoX</figcaption></figure>
+      <figure class="cell"><video src="static/video/ee_basketball_lego.mp4" muted loop playsinline preload="none" aria-label="LEGO"></video><figcaption>LEGO</figcaption></figure>
+      <figure class="cell"><video src="static/video/ee_basketball_gt.mp4" muted loop playsinline preload="none" aria-label="Ground truth"></video><figcaption>Ground truth</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-eh" role="tabpanel" aria-labelledby="tab-eh" hidden>
+    <p class="rowcap">Basketball, outdoors</p>
+    <div class="vrow c4" data-sync>
+      <figure class="cell exo"><video src="static/video/eh_basketball_exo.mp4" muted loop playsinline preload="none" aria-label="Exocentric input"></video><figcaption>Exocentric input</figcaption></figure>
+      <figure class="cell"><video src="static/video/eh_basketball_egox.mp4" muted loop playsinline preload="none" aria-label="EgoX"></video><figcaption>EgoX</figcaption></figure>
+      <figure class="cell"><video src="static/video/eh_basketball_lego.mp4" muted loop playsinline preload="none" aria-label="LEGO"></video><figcaption>LEGO</figcaption></figure>
+      <figure class="cell"><video src="static/video/eh_basketball_gt.mp4" muted loop playsinline preload="none" aria-label="Ground truth"></video><figcaption>Ground truth</figcaption></figure>
+    </div>
+    <p class="rowcap">Building with blocks, indoors</p>
+    <div class="vrow c4" data-sync>
+      <figure class="cell exo"><video src="static/video/eh_lego_exo.mp4" muted loop playsinline preload="none" aria-label="Exocentric input"></video><figcaption>Exocentric input</figcaption></figure>
+      <figure class="cell"><video src="static/video/eh_lego_egox.mp4" muted loop playsinline preload="none" aria-label="EgoX"></video><figcaption>EgoX</figcaption></figure>
+      <figure class="cell"><video src="static/video/eh_lego_lego.mp4" muted loop playsinline preload="none" aria-label="LEGO"></video><figcaption>LEGO</figcaption></figure>
+      <figure class="cell"><video src="static/video/eh_lego_gt.mp4" muted loop playsinline preload="none" aria-label="Ground truth"></video><figcaption>Ground truth</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-ny" role="tabpanel" aria-labelledby="tab-ny" hidden>
+    <p class="rowcap">Apartment, living room and kitchen</p>
+    <div class="vrow c4" data-sync>
+      <figure class="cell exo"><video src="static/video/ny_rush_exo.mp4" muted loop playsinline preload="none" aria-label="Exocentric input"></video><figcaption>Exocentric input</figcaption></figure>
+      <figure class="cell"><video src="static/video/ny_rush_egox.mp4" muted loop playsinline preload="none" aria-label="EgoX"></video><figcaption>EgoX</figcaption></figure>
+      <figure class="cell"><video src="static/video/ny_rush_lego.mp4" muted loop playsinline preload="none" aria-label="LEGO"></video><figcaption>LEGO</figcaption></figure>
+      <figure class="cell"><video src="static/video/ny_rush_gt.mp4" muted loop playsinline preload="none" aria-label="Ground truth"></video><figcaption>Ground truth</figcaption></figure>
+    </div>
+    <p class="rowcap">Apartment, galley kitchen</p>
+    <div class="vrow c4" data-sync>
+      <figure class="cell exo"><video src="static/video/ny_hall_exo.mp4" muted loop playsinline preload="none" aria-label="Exocentric input"></video><figcaption>Exocentric input</figcaption></figure>
+      <figure class="cell"><video src="static/video/ny_hall_egox.mp4" muted loop playsinline preload="none" aria-label="EgoX"></video><figcaption>EgoX</figcaption></figure>
+      <figure class="cell"><video src="static/video/ny_hall_lego.mp4" muted loop playsinline preload="none" aria-label="LEGO"></video><figcaption>LEGO</figcaption></figure>
+      <figure class="cell"><video src="static/video/ny_hall_gt.mp4" muted loop playsinline preload="none" aria-label="Ground truth"></video><figcaption>Ground truth</figcaption></figure>
+    </div>
+  </div>
+
+</section>
+
+<section id="quantitative">
+  <p class="eyebrow">Quantitative results</p>
+  <h2>Comparison on Ego-Exo4D</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th></th><th colspan="4">Image criteria</th><th colspan="4">Video criteria</th></tr>
+        <tr><th>Method</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th><th>CLIP-I ↑</th><th>FVD ↓</th><th>TF ↑</th><th>MS ↑</th><th>DD ↑</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group"><td colspan="9">Seen scenes</td></tr>
+        <tr><td>Exo2Ego-V</td><td>14.53</td><td>0.384</td><td>0.569</td><td>0.774</td><td>622.47</td><td>0.960</td><td>0.966</td><td>0.985</td></tr>
+        <tr><td>TrajectoryCrafter</td><td>13.05</td><td>0.375</td><td>0.606</td><td>0.780</td><td>546.09</td><td>0.960</td><td>0.980</td><td>0.947</td></tr>
+        <tr><td>Wan Fun Control</td><td>12.25</td><td>0.463</td><td>0.617</td><td>0.810</td><td>595.07</td><td>0.968</td><td>0.980</td><td>0.901</td></tr>
+        <tr><td>Wan VACE</td><td>12.95</td><td>0.413</td><td>0.626</td><td>0.829</td><td>508.69</td><td><b>0.989</b></td><td><b>0.994</b></td><td>0.673</td></tr>
+        <tr><td>EgoX</td><td>16.05</td><td>0.556</td><td>0.498</td><td>0.896</td><td>184.47</td><td>0.977</td><td>0.990</td><td>0.974</td></tr>
+        <tr><td>EgoX<sup>†</sup></td><td>15.57</td><td>0.556</td><td>0.466</td><td>0.903</td><td>197.95</td><td>0.985</td><td>0.993</td><td><b>0.990</b></td></tr>
+        <tr class="ours"><td><b>LEGO</b></td><td><b>20.28</b></td><td><b>0.689</b></td><td><b>0.310</b></td><td><b>0.925</b></td><td><b>155.56</b></td><td><b>0.989</b></td><td><b>0.994</b></td><td>0.987</td></tr>
+        <tr class="group"><td colspan="9">Unseen scenes</td></tr>
+        <tr><td>Exo2Ego-V</td><td>12.70</td><td>0.439</td><td>0.597</td><td>0.679</td><td>1283.50</td><td>0.971</td><td>0.976</td><td>0.978</td></tr>
+        <tr><td>TrajectoryCrafter</td><td>12.24</td><td>0.297</td><td>0.619</td><td>0.778</td><td>821.71</td><td>0.966</td><td>0.984</td><td>0.944</td></tr>
+        <tr><td>Wan Fun Control</td><td>13.59</td><td>0.439</td><td>0.604</td><td>0.799</td><td>968.78</td><td>0.971</td><td>0.985</td><td>0.944</td></tr>
+        <tr><td>Wan VACE</td><td>12.17</td><td>0.345</td><td>0.638</td><td>0.820</td><td>1045.45</td><td><b>0.995</b></td><td><b>0.996</b></td><td>0.427</td></tr>
+        <tr><td>EgoX</td><td>14.38</td><td>0.457</td><td>0.552</td><td>0.877</td><td>440.64</td><td>0.981</td><td>0.992</td><td>0.989</td></tr>
+        <tr><td>EgoX<sup>†</sup></td><td>13.53</td><td>0.437</td><td>0.542</td><td>0.886</td><td>455.06</td><td>0.986</td><td>0.994</td><td>0.990</td></tr>
+        <tr class="ours"><td><b>LEGO</b></td><td><b>15.91</b></td><td><b>0.505</b></td><td><b>0.504</b></td><td><b>0.897</b></td><td><b>404.77</b></td><td>0.990</td><td>0.995</td><td><b>1.000</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tnote">Rows without a mark are quoted from the EgoX paper. <sup>†</sup>The released EgoX checkpoint rerun under our evaluation code. TF, MS, and DD are the VBench temporal flickering, motion smoothness, and dynamic degree scores.</p>
+
+  <h3>Generalization to other datasets</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th></th><th colspan="4">Image criteria</th><th colspan="4">Video criteria</th></tr>
+        <tr><th>Method</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th><th>CLIP-I ↑</th><th>FVD ↓</th><th>TF ↑</th><th>MS ↑</th><th>DD ↑</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group"><td colspan="9">EgoHumans</td></tr>
+        <tr><td>EgoX<sup>†</sup></td><td>13.74</td><td>0.460</td><td>0.573</td><td>0.806</td><td>421.83</td><td>0.983</td><td>0.991</td><td><b>1.000</b></td></tr>
+        <tr class="ours"><td><b>LEGO</b></td><td><b>15.52</b></td><td><b>0.530</b></td><td><b>0.545</b></td><td><b>0.819</b></td><td><b>332.41</b></td><td><b>0.985</b></td><td><b>0.992</b></td><td><b>1.000</b></td></tr>
+        <tr class="group"><td colspan="9">Nymeria</td></tr>
+        <tr><td>EgoX<sup>†</sup></td><td>11.64</td><td>0.451</td><td>0.637</td><td>0.804</td><td>296.98</td><td>0.984</td><td>0.993</td><td><b>1.000</b></td></tr>
+        <tr class="ours"><td><b>LEGO</b></td><td><b>15.23</b></td><td><b>0.534</b></td><td><b>0.561</b></td><td><b>0.821</b></td><td><b>210.27</b></td><td><b>0.988</b></td><td><b>0.994</b></td><td><b>1.000</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tnote">Both methods use weights trained on Ego-Exo4D only, with no fine-tuning. Each dataset has 200 test clips.</p>
+</section>
+
+<section id="ablation">
+  <p class="eyebrow">Ablation</p>
+  <h2>What each component contributes</h2>
+  <p class="prose" style="margin:0;max-width:none">All arms share one training recipe and differ only in the conditioning input and in how denoising is guided.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th></th><th colspan="4">Seen scenes</th><th colspan="4">Unseen scenes</th></tr>
+        <tr><th>Arm</th><th>PSNR ↑</th><th>LPIPS ↓</th><th>CLIP-I ↑</th><th>FVD ↓</th><th>PSNR ↑</th><th>LPIPS ↓</th><th>CLIP-I ↑</th><th>FVD ↓</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group"><td colspan="9">Conditioning input (exocentric tokens hidden)</td></tr>
+        <tr><td>No condition</td><td>12.30</td><td>0.591</td><td>0.862</td><td>310.00</td><td>11.38</td><td>0.640</td><td>0.838</td><td>695.44</td></tr>
+        <tr><td>Point-cloud render</td><td>15.59</td><td>0.478</td><td>0.895</td><td>195.80</td><td>13.42</td><td>0.595</td><td>0.853</td><td>549.77</td></tr>
+        <tr><td>Untuned synthesizer render</td><td>15.71</td><td>0.503</td><td>0.888</td><td>212.94</td><td>13.56</td><td>0.596</td><td>0.848</td><td>560.51</td></tr>
+        <tr><td>Synthesizer render</td><td>18.24</td><td>0.364</td><td>0.904</td><td>183.40</td><td>14.35</td><td>0.567</td><td>0.860</td><td>581.90</td></tr>
+        <tr class="group"><td colspan="9">Completing the configuration (cumulative)</td></tr>
+        <tr><td>+ confidence gating</td><td>18.27</td><td>0.375</td><td>0.904</td><td>166.86</td><td>14.40</td><td>0.566</td><td>0.868</td><td>502.47</td></tr>
+        <tr><td>+ exocentric tokens</td><td>18.91</td><td>0.340</td><td>0.921</td><td>159.04</td><td>14.98</td><td>0.515</td><td><b>0.897</b></td><td>415.08</td></tr>
+        <tr class="group"><td colspan="9">Denoising guidance</td></tr>
+        <tr><td>GGA (trained into the model)</td><td>18.62</td><td>0.356</td><td>0.915</td><td>194.98</td><td>15.20</td><td>0.525</td><td>0.896</td><td>429.42</td></tr>
+        <tr><td>ARC (point-cloud render)</td><td>13.96</td><td>0.586</td><td>0.801</td><td>735.50</td><td>13.72</td><td>0.618</td><td>0.795</td><td>812.88</td></tr>
+        <tr class="ours"><td><b>ARC (synthesizer render) = LEGO</b></td><td><b>20.28</b></td><td><b>0.310</b></td><td><b>0.925</b></td><td><b>155.56</b></td><td><b>15.91</b></td><td><b>0.504</b></td><td><b>0.897</b></td><td><b>404.77</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <figure>
+    <a class="zoom" href="static/img/ablation.jpg" target="_blank" rel="noopener"><img src="static/img/ablation.jpg" alt="Qualitative ablation on one unseen clip following the rows of the ablation table" loading="lazy" width="2400" height="649"></a>
+    <figcaption>Qualitative ablation on one unseen clip, following the rows of the table. The second row shows enlarged crops of the corresponding regions in the first row.</figcaption>
+  </figure>
+
+  <h3>Confidence gating</h3>
+  <p class="prose" style="margin:0;max-width:none">Without a gate, the synthesizer render fills every location, including those with no exocentric evidence. The gate sets locations whose confidence falls below the threshold to neutral gray.</p>
+  <figure>
+    <a class="zoom" href="static/img/gating.jpg" target="_blank" rel="noopener"><img src="static/img/gating.jpg" alt="The synthesizer render gated at thresholds from 0.1 to 0.5, next to the ungated render and the EgoX point-cloud render" loading="lazy" width="2400" height="1149"></a>
+    <figcaption>The synthesizer render gated at τ = 0.1 to 0.5, shown between the ungated render and the point-cloud render of EgoX. LEGO uses τ = 0.3.</figcaption>
+  </figure>
+</section>
+
+<section id="limitations" class="prose">
+  <h2>Limitations</h2>
+  <p>LEGO inherits the limitations of its view synthesizer. The synthesizer renders each frame from a single exocentric frame, so it cannot recover content that the frame does not show, and it blurs where the correspondence is uncertain. On unfamiliar scenes its colors also fade. The pipeline needs no depth, but it still needs the camera poses of both views. Because the synthesizer is frozen and enters only through its render and confidence, a stronger feed-forward view synthesizer can replace it without changing the diffusion model or ARC.</p>
+  <figure>
+    <a class="zoom" href="static/img/limitation.jpg" target="_blank" rel="noopener"><img src="static/img/limitation.jpg" alt="Failure case where the exocentric frame does not cover the egocentric view and the condition is almost entirely gray" loading="lazy" width="1697" height="777"></a>
+    <figcaption>Where the exocentric frame does not cover the egocentric view, the condition is empty and the generator fills the region from its own prior.</figcaption>
+  </figure>
+</section>
+
+<section id="bibtex">
+  <h2>BibTeX</h2>
+  <div class="bib">
+    <button class="copy" type="button" id="copy-bib">Copy</button>
+<pre id="bib-text">@misc{cho2026lego,
+  title  = {LEGO: A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation},
+  author = {Cho, Suhwan and Choi, Yonwoo and Kim, Soongjin and Park, Jicheol and Lim, Taegyu},
+  year   = {2026}
+}</pre>
+  </div>
+</section>
+
+<footer>© 2026 GenGenAI</footer>
+</div>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var rate = 1;
+  try { var r = parseFloat(localStorage.getItem('lego-rate')); if (r === 0.5 || r === 1) rate = r; } catch (e) {}
+
+  function play(v) { v.playbackRate = rate; var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+  function vids(g) { return Array.prototype.slice.call(g.querySelectorAll('video')); }
+
+  /* synced comparison rows: play together while visible, re-align when the first clip loops */
+  var groups = Array.prototype.slice.call(document.querySelectorAll('[data-sync]'));
+  function start(g) {
+    var vs = vids(g);
+    vs.forEach(function (v) { if (v.preload === 'none') { v.preload = 'auto'; v.load(); } });
+    vs.forEach(function (v) { v.currentTime = 0; play(v); });
+  }
+  function stop(g) { vids(g).forEach(function (v) { v.pause(); }); }
+  groups.forEach(function (g) {
+    var vs = vids(g), m = vs[0], last = 0;
+    m.addEventListener('timeupdate', function () {
+      if (m.currentTime + 0.05 < last) vs.slice(1).forEach(function (v) { v.currentTime = m.currentTime; });
+      last = m.currentTime;
+    });
+  });
+  if (!reduce && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { e.isIntersecting ? start(e.target) : stop(e.target); });
+    }, { rootMargin: '200px 0px', threshold: 0.01 });
+    groups.forEach(function (g) { io.observe(g); });
+  } else {
+    groups.forEach(function (g) { vids(g).forEach(function (v) { v.controls = true; v.preload = 'metadata'; }); });
+  }
+
+  /* hero scene switcher */
+  var hero = document.getElementById('hero');
+  var heroVids = vids(hero);
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  if (reduce) { heroVids.forEach(function (v) { v.removeAttribute('autoplay'); v.pause(); v.controls = true; }); }
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      var s = c.getAttribute('data-scene');
+      chips.forEach(function (x) { x.setAttribute('aria-pressed', String(x === c)); });
+      heroVids.forEach(function (v) {
+        var on = v.getAttribute('data-scene') === s;
+        v.classList.toggle('on', on);
+        if (on) { if (v.preload === 'none') { v.preload = 'auto'; v.load(); } v.currentTime = 0; if (!reduce) play(v); }
+        else v.pause();
+      });
+    });
+  });
+
+  /* playback speed */
+  var rateBtns = Array.prototype.slice.call(document.querySelectorAll('[data-rate]'));
+  function applyRate() {
+    rateBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(parseFloat(b.getAttribute('data-rate')) === rate)); });
+    Array.prototype.forEach.call(document.querySelectorAll('video'), function (v) { v.playbackRate = rate; });
+  }
+  rateBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      rate = parseFloat(b.getAttribute('data-rate'));
+      try { localStorage.setItem('lego-rate', String(rate)); } catch (e) {}
+      applyRate();
+    });
+  });
+  applyRate();
+
+  /* dataset tabs */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(t) {
+    tabs.forEach(function (x) {
+      var on = x === t;
+      x.setAttribute('aria-selected', String(on));
+      x.tabIndex = on ? 0 : -1;
+      document.getElementById(x.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.tabIndex = t.getAttribute('aria-selected') === 'true' ? 0 : -1;
+    t.addEventListener('click', function () { select(t); });
+    t.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (d) { var n = tabs[(i + d + tabs.length) % tabs.length]; select(n); n.focus(); e.preventDefault(); }
+    });
+  });
+
+  /* copy BibTeX */
+  var btn = document.getElementById('copy-bib'), pre = document.getElementById('bib-text');
+  function selectText() { var s = window.getSelection(), r = document.createRange(); r.selectNodeContents(pre); s.removeAllRanges(); s.addRange(r); }
+  btn.addEventListener('click', function () {
+    var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pre.textContent).then(done, function () { selectText(); btn.textContent = 'Press Ctrl+C'; });
+    } else { selectText(); btn.textContent = 'Press Ctrl+C'; }
+  });
+})();
+</script>
+</body>
+</html>
