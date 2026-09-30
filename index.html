@@ -8,7 +8,9 @@
 <meta property="og:title" content="LEGO: A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation">
 <meta property="og:description" content="Egocentric video from a single exocentric video, without depth, point clouds, or reprojection.">
 <meta property="og:type" content="website">
-<link rel="icon" type="image/svg+xml" href="static/img/lego_head.svg">
+<link rel="icon" type="image/svg+xml" href="static/img/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32.png">
+<link rel="apple-touch-icon" href="static/img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -47,11 +49,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offs
 
 /* ---------- header ---------- */
 header{padding-block:56px 20px;text-align:center}
-.mark{width:52px;height:60px;margin:0 auto 14px}
+.mark{display:inline-block;height:.84em;width:auto;margin-right:.18em;vertical-align:-.05em}
+.nw{white-space:nowrap}
+sup{font-size:.75em;line-height:0;position:relative;top:-.45em;vertical-align:baseline;margin-left:1px}
 h1{font-family:var(--display);font-stretch:112%;font-weight:760;letter-spacing:-.01em;
-  font-size:clamp(24px,3.2vw,36px);line-height:1.15;margin:0 auto;max-width:820px;text-wrap:balance}
+  font-size:clamp(24px,3.2vw,36px);line-height:1.18;margin:0 auto;max-width:none;text-wrap:balance}
 h1 .name{display:block;font-size:1.4em;font-weight:800;letter-spacing:.02em;margin-bottom:6px}
-.authors{margin:22px auto 0;font-size:18px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 22px}
+.authors{margin:20px auto 0;font-size:18px;display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:4px 22px}
 .affil{margin:6px 0 0;color:var(--muted);font-size:16px}
 .note{margin:2px 0 0;color:var(--muted);font-size:14px}
 .links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:22px 0 0;padding:0;list-style:none}
@@ -63,13 +67,14 @@ h1 .name{display:block;font-size:1.4em;font-weight:800;letter-spacing:.02em;marg
 
 /* ---------- hero ---------- */
 .hero{margin-top:34px}
-.tldr{max-width:820px;margin:0 auto 22px;text-align:center;font-size:19px;text-wrap:balance}
+.tldr{max-width:var(--text);margin:0 auto 22px;text-align:center;font-size:19px;text-wrap:balance}
 .tldr b{font-family:var(--display);font-stretch:112%;font-weight:760;letter-spacing:.02em;margin-right:6px}
 .canvas{position:relative;background:var(--media);border-radius:10px;overflow:hidden;aspect-ratio:1232/448;max-width:100%}
 .canvas video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .canvas video:not(.on){visibility:hidden}
 .canvas-labels{display:grid;grid-template-columns:784fr 448fr;margin-top:8px;font-size:14px;color:var(--muted)}
-.canvas-labels span:last-child{padding-left:10px;border-left:3px solid var(--lego)}
+.canvas-labels span{text-align:center;padding-top:6px;border-top:3px solid transparent}
+.canvas-labels span:last-child{color:var(--ink);border-top-color:var(--lego)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
 .chip{font:600 14px/1 var(--body);padding:8px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -82,12 +87,15 @@ h3{font-family:var(--display);font-stretch:106%;font-weight:680;font-size:19px;m
 .lede{margin:0 0 14px}
 p{margin:0 0 14px}
 .eyebrow{font:700 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+section h2,section h3,.eyebrow{text-align:center}
+#abstract p,.prose > p,.intro{text-align:justify;hyphens:manual}
 figure{margin:22px 0 0}
 figure a.zoom{display:block;background:#fff;border-radius:10px;border:1px solid var(--rule);padding:10px}
-figcaption{color:var(--muted);font-size:15px;margin-top:10px}
+figcaption{color:var(--muted);font-size:15px;max-width:var(--text);margin:10px auto 0;text-align:center}
+figure.narrow{max-width:var(--text);margin-inline:auto}
 .steps{list-style:none;padding:0;margin:26px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .steps li{background:var(--panel);border-radius:10px;padding:18px 18px 16px}
-.steps h3{font-family:var(--display);font-stretch:106%;font-size:17px;margin:0 0 6px}
+.steps h3{text-align:left;font-family:var(--display);font-stretch:106%;font-size:17px;margin:0 0 6px}
 .steps p{font-size:16px;margin:0}
 .steps .tag{font:500 12px/1 var(--mono);color:var(--muted);display:block;margin-bottom:8px}
 
@@ -102,16 +110,17 @@ figcaption{color:var(--muted);font-size:15px;margin-top:10px}
 .c3{grid-template-columns:1.75fr 1fr 1fr}
 .c2{grid-template-columns:1.75fr 1fr}
 .grid-head{font:600 14px/1.25 var(--body);color:var(--muted);margin-bottom:6px}
-.grid-head span{padding-bottom:6px;border-bottom:3px solid transparent}
+.grid-head span{text-align:center;padding-bottom:6px;border-bottom:3px solid transparent}
 .grid-head .ours{color:var(--ink);border-bottom-color:var(--lego)}
 .rowcap{font-size:14px;color:var(--muted);margin:16px 0 6px}
 .rowcap:first-of-type{margin-top:0}
 .cell{margin:0}
 .cell video{width:100%;height:auto;background:var(--media);border-radius:6px}
-.cell figcaption{display:none;font-size:13px;margin-top:4px}
+.cell figcaption{display:none;font-size:13px;margin-top:4px;max-width:none}
 .panel[hidden]{display:none}
 .hint{font-size:14px;color:var(--muted);margin-top:12px}
-.intro{margin:0 0 18px}
+.intro{max-width:var(--text);margin:0 auto 18px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
 
 /* ---------- tables ---------- */
 .tbl-wrap{overflow-x:auto;margin-top:12px;border:1px solid var(--rule);border-radius:10px}
@@ -124,7 +133,7 @@ tbody tr+tr td{border-top:1px solid var(--rule)}
 tr.group td{background:var(--panel);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left}
 tr.ours td{background:var(--lego-tint)}
 td b{font-weight:700}
-.tnote{font-size:14px;color:var(--muted);margin-top:8px}
+.tnote{font-size:14px;color:var(--muted);max-width:var(--text);margin:8px auto 0;text-align:center}
 
 /* ---------- bibtex ---------- */
 .bib{position:relative;background:var(--panel);border-radius:10px;margin-top:6px}
@@ -145,6 +154,8 @@ footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:v
   .vrow .exo{grid-column:1/-1}
   .cell figcaption{display:block}
   .canvas-labels{font-size:12px}
+  .br-lg{display:none}
+  .tldr{font-size:17px}
 }
 @media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto!important;transition:none!important} }
 </style>
@@ -153,8 +164,7 @@ footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:v
 <div class="wrap">
 
 <header>
-  <img class="mark" src="static/img/lego_head.svg" alt="" width="52" height="60">
-  <h1><span class="name">LEGO</span>A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation</h1>
+  <h1><span class="name"><img class="mark" src="static/img/lego_head.svg" alt="" width="100" height="116">LEGO</span>A <span class="nw">Lifting-Free</span> Approach for<br class="br-lg"> <span class="nw">Exocentric-to-Egocentric</span> Video Generation</h1>
   <div class="authors">
     <span>Suhwan Cho<sup>*</sup></span>
     <span>Yonwoo Choi<sup>*</sup></span>
@@ -228,17 +238,16 @@ footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:v
 </section>
 
 <section id="results">
-  <div class="toolbar">
-    <div><p class="eyebrow">Results</p><h2 style="margin:0">Comparison with EgoX</h2></div>
-    <div><span class="seg-label">Playback</span><span class="seg" role="group" aria-label="Playback speed"><button type="button" data-rate="1" aria-pressed="true">1×</button><button type="button" data-rate="0.5" aria-pressed="false">0.5×</button></span></div>
-  </div>
-  <p class="intro">Both methods receive the same camera poses, text prompt, and random seed. EgoX is the authors' released checkpoint. EgoHumans and Nymeria are never used for training: LEGO runs with the weights trained on Ego-Exo4D.</p>
-  <div class="toolbar" style="margin-bottom:12px">
+  <p class="eyebrow">Results</p>
+  <h2>Comparison with EgoX</h2>
+  <p class="intro">Both methods receive the same camera poses, text prompt, and random seed. EgoX is the authors' released checkpoint. EgoHumans and Nymeria are never used for training: LEGO runs with the weights trained on <span class="nw">Ego-Exo4D</span>.</p>
+  <div class="controls">
     <span class="seg" role="tablist" aria-label="Dataset">
-      <button type="button" role="tab" id="tab-ee" aria-controls="panel-ee" aria-selected="true">Ego-Exo4D</button>
+      <button type="button" role="tab" id="tab-ee" aria-controls="panel-ee" aria-selected="true"><span class="nw">Ego-Exo4D</span></button>
       <button type="button" role="tab" id="tab-eh" aria-controls="panel-eh" aria-selected="false">EgoHumans</button>
       <button type="button" role="tab" id="tab-ny" aria-controls="panel-ny" aria-selected="false">Nymeria</button>
     </span>
+    <span><span class="seg-label">Playback</span><span class="seg" role="group" aria-label="Playback speed"><button type="button" data-rate="1" aria-pressed="true">1×</button><button type="button" data-rate="0.5" aria-pressed="false">0.5×</button></span></span>
   </div>
   <div class="grid-head c4" aria-hidden="true"><span>Exocentric input</span><span>EgoX</span><span class="ours">LEGO</span><span>Ground truth</span></div>
 
@@ -297,7 +306,7 @@ footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:v
 
 <section id="quantitative">
   <p class="eyebrow">Quantitative results</p>
-  <h2>Comparison on Ego-Exo4D</h2>
+  <h2>Comparison on <span class="nw">Ego-Exo4D</span></h2>
   <div class="tbl-wrap">
     <table>
       <thead>
@@ -343,13 +352,13 @@ footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:v
       </tbody>
     </table>
   </div>
-  <p class="tnote">Both methods use weights trained on Ego-Exo4D only, with no fine-tuning. Each dataset has 200 test clips.</p>
+  <p class="tnote">Both methods use weights trained on <span class="nw">Ego-Exo4D</span> only, with no fine-tuning. Each dataset has 200 test clips.</p>
 </section>
 
 <section id="ablation">
   <p class="eyebrow">Ablation</p>
   <h2>What each component contributes</h2>
-  <p class="prose" style="margin:0;max-width:none">All arms share one training recipe and differ only in the conditioning input and in how denoising is guided.</p>
+  <p class="intro">All arms share one training recipe and differ only in the conditioning input and in how denoising is guided.</p>
   <div class="tbl-wrap">
     <table>
       <thead>
@@ -378,17 +387,17 @@ footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);color:v
   </figure>
 
   <h3>Confidence gating</h3>
-  <p class="prose" style="margin:0;max-width:none">Without a gate, the synthesizer render fills every location, including those with no exocentric evidence. The gate sets locations whose confidence falls below the threshold to neutral gray.</p>
+  <p class="intro">Without a gate, the synthesizer render fills every location, including those with no exocentric evidence. The gate sets locations whose confidence falls below the threshold to neutral gray.</p>
   <figure>
     <a class="zoom" href="static/img/gating.jpg" target="_blank" rel="noopener"><img src="static/img/gating.jpg" alt="The synthesizer render gated at thresholds from 0.1 to 0.5, next to the ungated render and the EgoX point-cloud render" loading="lazy" width="2400" height="1149"></a>
     <figcaption>The synthesizer render gated at τ = 0.1 to 0.5, shown between the ungated render and the point-cloud render of EgoX. LEGO uses τ = 0.3.</figcaption>
   </figure>
 </section>
 
-<section id="limitations" class="prose">
+<section id="limitations">
   <h2>Limitations</h2>
-  <p>LEGO inherits the limitations of its view synthesizer. The synthesizer renders each frame from a single exocentric frame, so it cannot recover content that the frame does not show, and it blurs where the correspondence is uncertain. On unfamiliar scenes its colors also fade. The pipeline needs no depth, but it still needs the camera poses of both views. Because the synthesizer is frozen and enters only through its render and confidence, a stronger feed-forward view synthesizer can replace it without changing the diffusion model or ARC.</p>
-  <figure>
+  <p class="intro">LEGO inherits the limitations of its view synthesizer. The synthesizer renders each frame from a single exocentric frame, so it cannot recover content that the frame does not show, and it blurs where the correspondence is uncertain. On unfamiliar scenes its colors also fade. The pipeline needs no depth, but it still needs the camera poses of both views. Because the synthesizer is frozen and enters only through its render and confidence, a stronger feed-forward view synthesizer can replace it without changing the diffusion model or ARC.</p>
+  <figure class="narrow">
     <a class="zoom" href="static/img/limitation.jpg" target="_blank" rel="noopener"><img src="static/img/limitation.jpg" alt="Failure case where the exocentric frame does not cover the egocentric view and the condition is almost entirely gray" loading="lazy" width="1697" height="777"></a>
     <figcaption>Where the exocentric frame does not cover the egocentric view, the condition is empty and the generator fills the region from its own prior.</figcaption>
   </figure>
